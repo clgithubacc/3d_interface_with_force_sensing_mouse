@@ -20,8 +20,12 @@ class SensorInput(threading.Thread):
     def run(self):
         while True:
             fsreadings = [self.fsul.read(), self.fsur.read(), self.fsbl.read(), self.fsbr.read()]
-            self.forces = [int(v / 900 * 2000) for v in fsreadings]
+            if None in fsreadings:
+                continue
+            self.forces = [int(v / 0.8 * 2000) for v in fsreadings]
+            print(self.get_input())
             time.sleep(0.1)
+
 
     def get_input(self):
         force_diff = [self.forces[i] - self.forces[3] for i in range(3)]
@@ -29,6 +33,14 @@ class SensorInput(threading.Thread):
         if not (exceed_threshold[0] or exceed_threshold[1] or exceed_threshold[2]) and self.forces[
             0] > self.uniform_pressing_threshold:
             pattern = 0  # Uniform
+        elif exceed_threshold[0] and exceed_threshold[1] and not exceed_threshold[2]:
+            pattern = 6  # Front Two
+        elif not (exceed_threshold[0] or exceed_threshold[1]) and exceed_threshold[2]:
+            pattern = 7  # Back Two
+        elif exceed_threshold[0] and exceed_threshold[2] and not exceed_threshold[1]:
+            pattern = 8  # Left Two
+        elif exceed_threshold[1] and not (exceed_threshold[0] or exceed_threshold[2]):
+            pattern = 9  # Right Two
         elif exceed_threshold[0] and not (exceed_threshold[1] or exceed_threshold[2]):
             pattern = 1  # Upper Left
         elif exceed_threshold[1] and not (exceed_threshold[0] or exceed_threshold[2]):
@@ -40,4 +52,5 @@ class SensorInput(threading.Thread):
         else:
             pattern = 5
 
-        return str(pattern) + ' ' + ' '.join(str(i) for i in self.forces)
+        return [pattern]+self.forces
+        #return str(pattern) + ' ' + ' '.join(str(i) for i in self.forces)
